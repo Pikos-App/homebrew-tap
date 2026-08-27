@@ -12,7 +12,6 @@ cask "pikos" do
   # an outdated install.
   auto_updates true
   conflicts_with cask: "pikos@beta"
-  depends_on macos: ">= :big_sur"
 
   app "Pikos.app"
 

@@ -4,7 +4,12 @@ Notes, tasks, and calendar in one local-first app. https://pikos.app
 
 ```sh
 brew tap pikos-app/tap
+brew trust pikos-app/tap
 ```
+
+Homebrew will not load formulae or casks from a third-party tap until you trust
+it, so the second line is not optional. `brew bundle` does it for you when the
+Brewfile marks the tap `trusted`.
 
 ## The app
 

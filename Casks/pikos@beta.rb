@@ -1,6 +1,6 @@
 cask "pikos@beta" do
-  version "0.4.0-beta.1"
-  sha256 "6301cb3d6051fd2ea093770648dbcd0817a90d6504489b57aa67f01f87bf5b5d"
+  version "0.4.0-beta.3"
+  sha256 "9c5b54e2c0089f032ea8774a727ca3078ee2c18094376625fe0250875eee571a"
 
   url "https://github.com/pikos-app/pikos/releases/download/v#{version}/Pikos-macos-universal.dmg",
       verified: "github.com/pikos-app/pikos/"
@@ -10,6 +10,7 @@ cask "pikos@beta" do
 
   auto_updates true
   conflicts_with cask: "pikos"
+  depends_on macos: :monterey
 
   app "Pikos.app"
 

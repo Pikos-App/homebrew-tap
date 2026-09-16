@@ -1,0 +1,60 @@
+# Does the tap still install?
+#
+# Version drift against a new release is checked weekly from the app repo, which is the only
+# side that knows what has shipped. This side answers the other half: whether a change made
+# here parses, audits and downloads. Both halves have to exist, because a tap that is correct
+# on Monday can be broken by an edit on Tuesday and nobody finds out until an install fails.
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Tap this checkout
+        run: |
+          brew tap-new pikos-app/tap --no-git || true
+          tap_dir="$(brew --repository pikos-app/tap)"
+          rm -rf "$tap_dir/Formula" "$tap_dir/Casks"
+          cp -R Formula "$tap_dir/Formula"
+          cp -R Casks "$tap_dir/Casks"
+
+      # --online is what fetches the URLs and so catches a checksum that no longer matches the
+      # asset, which is the failure a local audit cannot see.
+      - name: Audit
+        run: |
+          brew audit --strict --online pikos-app/tap/pikos-cli
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            brew audit --strict --online --cask pikos-app/tap/pikos
+            brew audit --strict --online --cask pikos-app/tap/pikos@beta
+          fi
+
+      # A deprecated stanza warns rather than failing the audit, and that is exactly how a tap
+      # stops working one Homebrew release later. Treat the warning as the failure it will become.
+      - name: Refuse a deprecated stanza
+        if: runner.os == 'macOS'
+        run: |
+          for cask in pikos pikos@beta; do
+            if brew fetch --cask --force "pikos-app/tap/$cask" 2>&1 | grep -q "deprecated"; then
+              echo "pikos-app/tap/$cask uses a deprecated stanza"
+              exit 1
+            fi
+          done
+
+      - name: Install and run
+        run: |
+          brew install pikos-app/tap/pikos-cli
+          brew test pikos-app/tap/pikos-cli

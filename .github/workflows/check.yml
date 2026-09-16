@@ -26,6 +26,8 @@ jobs:
       # would land instead of as main already is.
       - name: Install this checkout as the tap
         run: |
+          # Both: GITHUB_PATH only reaches the *next* step, and brew is needed in this one.
+          export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
           echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
           tap_dir="$(brew --repository)/Library/Taps/pikos-app/homebrew-tap"
           rm -rf "$tap_dir"

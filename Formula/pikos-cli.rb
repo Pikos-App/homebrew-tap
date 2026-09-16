@@ -1,8 +1,12 @@
 class PikosCli < Formula
   desc "Headless access to your local Pikos workspace"
   homepage "https://pikos.app/"
-  version "0.4.0-beta.3"
   license "BUSL-1.1"
+
+  # Only `pikos add` needs it: the natural-language parser is single-sourced in
+  # the TypeScript core and runs in a one-shot node subprocess. Every other
+  # command is pure Rust against SQLite.
+  depends_on "node"
 
   on_macos do
     on_arm do
@@ -15,15 +19,14 @@ class PikosCli < Formula
     end
   end
 
+  # Nested inside `on_intel` rather than sitting directly in `on_linux`, which
+  # current Homebrew refuses to parse. Only x86_64 is published.
   on_linux do
-    url "https://github.com/pikos-app/pikos/releases/download/v0.4.0-beta.3/pikos-cli-0.4.0-beta.3-x86_64-unknown-linux-gnu.tar.gz"
-    sha256 "4e45495b1e0263258118e022111a7081dee1b08b2ce43995eee9026249035b38"
+    on_intel do
+      url "https://github.com/pikos-app/pikos/releases/download/v0.4.0-beta.3/pikos-cli-0.4.0-beta.3-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "4e45495b1e0263258118e022111a7081dee1b08b2ce43995eee9026249035b38"
+    end
   end
-
-  # Only `pikos add` needs it: the natural-language parser is single-sourced in
-  # the TypeScript core and runs in a one-shot node subprocess. Every other
-  # command is pure Rust against SQLite.
-  depends_on "node"
 
   def install
     libexec.install "bin/pikos"

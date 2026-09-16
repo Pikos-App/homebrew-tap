@@ -2,8 +2,7 @@ cask "pikos" do
   version "0.3.1"
   sha256 "7268ce58abb29650b215eb18b051efc8fecd855f70be35e886340205d371eb11"
 
-  url "https://github.com/pikos-app/pikos/releases/download/v#{version}/Pikos-macos-universal.dmg",
-      verified: "github.com/pikos-app/pikos/"
+  url "https://github.com/pikos-app/pikos/releases/download/v#{version}/Pikos-macos-universal.dmg"
   name "Pikos"
   desc "Local-first notes, tasks, and calendar in one app"
   homepage "https://pikos.app/"

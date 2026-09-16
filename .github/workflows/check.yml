@@ -40,7 +40,12 @@ jobs:
           brew audit --strict --online pikos-app/tap/pikos-cli
           if [ "$RUNNER_OS" = "macOS" ]; then
             brew audit --strict --online --cask pikos-app/tap/pikos
-            brew audit --strict --online --cask pikos-app/tap/pikos@beta
+            # Offline, then fetched. --online objects to a pre-release cask on principle —
+            # that it points at a pre-release, and that livecheck finds the stable tag
+            # instead — and both are what this cask is for. `brew fetch` still proves the
+            # URL and the checksum, which is the part a change here can break.
+            brew audit --strict --cask pikos-app/tap/pikos@beta
+            brew fetch --cask pikos-app/tap/pikos@beta
           fi
 
       # A deprecated stanza warns rather than failing the audit, and that is exactly how a tap

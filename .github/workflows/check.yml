@@ -15,6 +15,10 @@ on:
 jobs:
   audit:
     runs-on: ${{ matrix.os }}
+    # `brew audit --online` asks the GitHub API about every release it checks, and unauthenticated
+    # runners share a 60-per-hour limit that this workflow exhausts on its own.
+    env:
+      HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
     strategy:
       fail-fast: false
       matrix:

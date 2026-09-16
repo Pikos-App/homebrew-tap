@@ -22,18 +22,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: Homebrew/actions/setup-homebrew@main
-
-      - name: Tap this checkout
+      # Copied into place rather than tapped from GitHub, so a pull request is audited as it
+      # would land instead of as main already is.
+      - name: Install this checkout as the tap
         run: |
-          brew tap-new pikos-app/tap --no-git || true
-          tap_dir="$(brew --repository pikos-app/tap)"
-          rm -rf "$tap_dir/Formula" "$tap_dir/Casks"
-          cp -R Formula "$tap_dir/Formula"
-          cp -R Casks "$tap_dir/Casks"
+          echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
+          tap_dir="$(brew --repository)/Library/Taps/pikos-app/homebrew-tap"
+          rm -rf "$tap_dir"
+          mkdir -p "$(dirname "$tap_dir")"
+          cp -R "$GITHUB_WORKSPACE" "$tap_dir"
+          brew tap | grep -qx "pikos-app/tap"
 
-      # --online is what fetches the URLs and so catches a checksum that no longer matches the
-      # asset, which is the failure a local audit cannot see.
+      # --online fetches the URLs, which is what catches a checksum that no longer matches the
+      # asset. A local audit cannot see that.
       - name: Audit
         run: |
           brew audit --strict --online pikos-app/tap/pikos-cli

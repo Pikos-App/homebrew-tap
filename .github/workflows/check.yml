@@ -39,6 +39,19 @@ jobs:
           cp -R "$GITHUB_WORKSPACE" "$tap_dir"
           brew tap | grep -qx "pikos-app/tap"
 
+      - name: Locate the download cache
+        id: brew-cache
+        run: echo "dir=$(brew --cache)/downloads" >> "$GITHUB_OUTPUT"
+
+      # GitHub counts a runner fetching a release asset as a download, the same as a person, so
+      # an uncached run inflates Pikos's install numbers. Kept across runs, each asset is fetched
+      # once per change to the cask or formula that names it.
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.brew-cache.outputs.dir }}
+          key: brew-downloads-${{ runner.os }}-${{ hashFiles('Casks/**', 'Formula/**') }}
+          restore-keys: brew-downloads-${{ runner.os }}-
+
       # --online fetches the URLs, which is what catches a checksum that no longer matches the
       # asset. A local audit cannot see that.
       - name: Audit
@@ -60,7 +73,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           for cask in pikos pikos@beta; do
-            if brew fetch --cask --force "pikos-app/tap/$cask" 2>&1 | grep -q "deprecated"; then
+            if brew fetch --cask "pikos-app/tap/$cask" 2>&1 | grep -q "deprecated"; then
               echo "pikos-app/tap/$cask uses a deprecated stanza"
               exit 1
             fi

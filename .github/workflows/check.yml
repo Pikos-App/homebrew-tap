@@ -2,8 +2,13 @@
 #
 # Version drift against a new release is checked weekly from the app repo, which is the only
 # side that knows what has shipped. This side answers the other half: whether a change made
-# here parses, audits and downloads. Both halves have to exist, because a tap that is correct
-# on Monday can be broken by an edit on Tuesday and nobody finds out until an install fails.
+# here parses, audits and points at the right files. Both halves have to exist, because a tap
+# that is correct on Monday can be broken by an edit on Tuesday and nobody finds out until an
+# install fails.
+#
+# Nothing here downloads a release asset except the install job, and that runs only when the
+# formula changes. GitHub counts a runner fetching an asset as a download, the same as a person,
+# and Pikos's install numbers are read from those counts.
 name: check
 
 on:
@@ -15,8 +20,6 @@ on:
 jobs:
   audit:
     runs-on: ${{ matrix.os }}
-    # `brew audit --online` asks the GitHub API about every release it checks, and unauthenticated
-    # runners share a 60-per-hour limit that this workflow exhausts on its own.
     env:
       HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
     strategy:
@@ -39,47 +42,30 @@ jobs:
           cp -R "$GITHUB_WORKSPACE" "$tap_dir"
           brew tap | grep -qx "pikos-app/tap"
 
-      - name: Locate the download cache
-        id: brew-cache
-        run: echo "dir=$(brew --cache)/downloads" >> "$GITHUB_OUTPUT"
-
-      # GitHub counts a runner fetching a release asset as a download, the same as a person, so
-      # an uncached run inflates Pikos's install numbers. Kept across runs, each asset is fetched
-      # once per change to the cask or formula that names it.
-      - uses: actions/cache@v4
-        with:
-          path: ${{ steps.brew-cache.outputs.dir }}
-          key: brew-downloads-${{ runner.os }}-${{ hashFiles('Casks/**', 'Formula/**') }}
-          restore-keys: brew-downloads-${{ runner.os }}-
-
-      # --online fetches the URLs, which is what catches a checksum that no longer matches the
-      # asset. A local audit cannot see that.
-      - name: Audit
-        run: |
-          brew audit --strict --online pikos-app/tap/pikos-cli
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            brew audit --strict --online --cask pikos-app/tap/pikos
-            # Offline, then fetched. --online objects to a pre-release cask on principle —
-            # that it points at a pre-release, and that livecheck finds the stable tag
-            # instead — and both are what this cask is for. `brew fetch` still proves the
-            # URL and the checksum, which is the part a change here can break.
-            brew audit --strict --cask pikos-app/tap/pikos@beta
-            brew fetch --cask pikos-app/tap/pikos@beta
-          fi
-
       # A deprecated stanza warns rather than failing the audit, and that is exactly how a tap
       # stops working one Homebrew release later. Treat the warning as the failure it will become.
-      - name: Refuse a deprecated stanza
-        if: runner.os == 'macOS'
+      - name: Audit
         run: |
-          for cask in pikos pikos@beta; do
-            if brew fetch --cask "pikos-app/tap/$cask" 2>&1 | grep -q "deprecated"; then
-              echo "pikos-app/tap/$cask uses a deprecated stanza"
-              exit 1
+          set -o pipefail
+          {
+            brew audit --strict pikos-app/tap/pikos-cli
+            if [ "$RUNNER_OS" = "macOS" ]; then
+              brew audit --strict --cask pikos-app/tap/pikos
+              brew audit --strict --cask pikos-app/tap/pikos@beta
             fi
-          done
+          } 2>&1 | tee audit.log
+          if grep -q "deprecated" audit.log; then
+            echo "the tap uses a deprecated stanza"
+            exit 1
+          fi
 
-      - name: Install and run
-        run: |
-          brew install pikos-app/tap/pikos-cli
-          brew test pikos-app/tap/pikos-cli
+  # Stands in for `brew audit --online` and `brew fetch`, which proved the same thing by
+  # downloading every asset on every run.
+  checksums:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every url and sha256 matches a published asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/check-digests.sh

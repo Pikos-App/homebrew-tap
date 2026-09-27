@@ -1,0 +1,35 @@
+# Does the CLI actually install and run from the tap?
+#
+# The one check that has to download an asset, so it runs only when the formula changes: one
+# CLI download per runner per release. Pikos's install numbers subtract those by hand.
+name: install
+
+on:
+  push:
+    branches: [main]
+    paths: [Formula/**]
+  workflow_dispatch:
+
+jobs:
+  cli:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install this checkout as the tap
+        run: |
+          export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
+          echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
+          tap_dir="$(brew --repository)/Library/Taps/pikos-app/homebrew-tap"
+          rm -rf "$tap_dir"
+          mkdir -p "$(dirname "$tap_dir")"
+          cp -R "$GITHUB_WORKSPACE" "$tap_dir"
+
+      - name: Install and run
+        run: |
+          brew install pikos-app/tap/pikos-cli
+          brew test pikos-app/tap/pikos-cli

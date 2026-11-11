@@ -41,6 +41,9 @@ jobs:
           mkdir -p "$(dirname "$tap_dir")"
           cp -R "$GITHUB_WORKSPACE" "$tap_dir"
           brew tap | grep -qx "pikos-app/tap"
+          # Homebrew 7 refuses to audit a formula from a tap nobody has trusted, and a tap
+          # copied into place was never trusted by an install.
+          brew trust --tap pikos-app/tap
 
       # A deprecated stanza warns rather than failing the audit, and that is exactly how a tap
       # stops working one Homebrew release later. Treat the warning as the failure it will become.

@@ -1,6 +1,6 @@
 cask "pikos" do
-  version "0.4.1"
-  sha256 "bb9a6c825f43f1ef865d0ec4831492f42155c021278b092f39978496f9d57690"
+  version "0.5.0"
+  sha256 "323f1d8acaa9dba217787f803f50b515fdf4a469e38d99efe723e6663e43fa30"
 
   url "https://github.com/pikos-app/pikos/releases/download/v#{version}/Pikos-macos-universal.dmg"
   name "Pikos"
